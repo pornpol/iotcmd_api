@@ -70,6 +70,33 @@ function getConfig(id){
   var filepath = './config/' + id + '.json';
   return readJsonFileSync(filepath);
 }
+
+function dec2bin(nMask){
+  // nMask must be between -2147483648 and 2147483647
+  for (var nFlag = 0, nShifted = nMask, sMask = ''; nFlag < 32;
+  nFlag++, sMask += String(nShifted >>> 31), nShifted <<= 1);
+  return sMask;
+}
+
+function errCode2Str(errCode){
+  str = "";
+
+  if(errCode == 0){
+    str = "System OK";
+  }else{
+    if(errCode & (1<<0)) str = str + "System Restart, ";
+    if(errCode & (1<<1)) str = str + "Power Down, ";
+    if(errCode & (1<<2)) str = str + "Network Error, ";
+    if(errCode & (1<<3)) str = str + "SDCard Error, ";
+    if(errCode & (1<<4)) str = str + "SPIFlash Error, ";
+    if(errCode & (1<<5)) str = str + "Meter/Sensor Error, ";
+    if(errCode & (1<<6)) str = str + "Server Error, ";
+
+    str = str.slice(0, -2);
+  }
+
+  return str;
+}
 /////////////////////////////////////////////////////
 
 app.get('/api', (req, res) => {
@@ -135,9 +162,9 @@ app.post('/api/enres/log/:id', (req, res) => {
 
   for(var key in req.body)
   {
-    logMsg = logMsg + req.body[key].dt + " : " + req.body[key].msg + "\r\n"
+    logMsg = logMsg + req.body[key].dt + " : " + errCode2Str(req.body[key].msg) + "\r\n"
   }
-  appendLogFile('log/'+id, (new Date()).toISOString().substring(0, 10)+'.log', logMsg)
+  appendLogFile('log/'+id, (new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000))).toISOString().substring(0, 10)+'.log', logMsg)
 
   res.set('Content-Type', 'application/json')
   res.send(`{"success":1}`)
